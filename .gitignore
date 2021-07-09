@@ -1,0 +1,25 @@
+# Things that I don't want to be tracked.
+.vscode/
+
+# Eclipse folders.
+bin/
+.settings/
+*.launch
+*.metadata
+*.classpath
+*.project
+
+# IntelliJ IDEA folders.
+out/
+.idea/
+*.ipr
+*.iws
+*.iml
+
+# Gradle folders.
+build/
+.gradle/
+
+# Others.
+eclipse/
+run/

@@ -1,0 +1,18 @@
+[
+    {
+        "modid": "huff",
+        "name": "Huff Client Mod",
+        "description": "Completely inconspicious, nothing cheat-y here.",
+        "version": "${version}",
+        "mcversion": "${mcversion}",
+        "url": "https://github.com",
+        "updateUrl": "",
+        "authorList": ["larrabyte", "captainboggle"],
+        "credits": "The Creators of Deez",
+        "logoFile": "",
+        "screenshots": [],
+        "dependencies": [
+            "mod_MinecraftForge"
+        ]
+    }
+]
