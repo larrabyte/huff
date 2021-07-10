@@ -1,5 +1,9 @@
 package dev.larrabyte.huff;
 
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.List;
+
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
@@ -9,15 +13,12 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
-
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.List;
-
 import net.minecraft.block.material.Material;
+
 import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.PlayerTickEvent;
+import net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent;
 import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
 public class AutoClicker {
@@ -27,9 +28,13 @@ public class AutoClicker {
     private final long WINDOW_SIZE = 2;
     private final long GRANULARITY = 1000;
 
-    private final WaitTimer timer = new WaitTimer();
+    // Left-click related fields.
     private long rangeCap = (MAX_CPS + MIN_CPS + WINDOW_SIZE) * (GRANULARITY / 2);
     private long rangeFloor = (MAX_CPS + MIN_CPS - WINDOW_SIZE) * (GRANULARITY / 2);
+    private WaitTimer timer = new WaitTimer();
+
+    // Right-click related fields.
+    private Field rightClickDelayTimerField = null;
 
     public boolean shouldLeftClick(Minecraft instance) {
         boolean pressed = instance.gameSettings.keyBindAttack.isKeyDown();
@@ -45,6 +50,7 @@ public class AutoClicker {
     }
 
     public boolean shouldRightClick(Minecraft instance) {
+        boolean pressed = instance.gameSettings.keyBindUseItem.isKeyDown();
         boolean nonNull = instance.thePlayer.getCurrentEquippedItem() != null;
 
         if(nonNull) {
@@ -60,7 +66,7 @@ public class AutoClicker {
                 isSplashPotion = ItemPotion.isSplash(potionMetadata);
             }
 
-            return isBlock || isThrowable || isSplashPotion;
+            return pressed && (isBlock || isThrowable || isSplashPotion);
         }
 
         return false;
@@ -132,21 +138,31 @@ public class AutoClicker {
     public void onTickEvent(PlayerTickEvent event) throws IllegalArgumentException, IllegalAccessException {
         Minecraft instance = Minecraft.getMinecraft();
 
-        if(!shouldLeftClick(instance)) {
-            // Just reset the timer and move on.
-            timer.reset();
+        if(shouldLeftClick(instance)) {
+            long clickDelay = computeDelay();
+            if(timer.hasTimeElapsed(clickDelay)) {
+                clickMouse(instance);
+                timer.reset();
+            }
         }
 
-        else if(timer.hasTimeElapsed(computeDelay())) {
-            clickMouse(instance);
+        else {
+            // No left click, reset the timer.
             timer.reset();
         }
 
         if(shouldRightClick(instance)) {
-            Class<? extends Minecraft> instanceClass = instance.getClass();
-            Field rightClickField = ReflectionHelper.findField(instanceClass, "rightClickDelayTimer", "field_71467_ac");
-            rightClickField.setAccessible(true);
-            rightClickField.setInt(instance, 0);
+            rightClickDelayTimerField.setInt(instance, 0);
         }
+    }
+
+    @SubscribeEvent
+    public void onConnectToServerEvent(ClientConnectedToServerEvent event) throws Exception {
+        // Create a reference to the rightClickDelayTimer field when we connect.
+        Minecraft instance = Minecraft.getMinecraft();
+        Class<? extends Minecraft> instanceClass = instance.getClass();
+
+        rightClickDelayTimerField = ReflectionHelper.findField(instanceClass, "rightClickDelayTimer", "field_71467_ac");
+        rightClickDelayTimerField.setAccessible(true);
     }
 }
