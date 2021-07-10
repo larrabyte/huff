@@ -3,7 +3,9 @@ package dev.larrabyte.huff;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemSword;
 import net.minecraft.util.BlockPos;
+import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.Entity;
 import net.minecraft.block.material.Material;
 import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -64,24 +66,23 @@ public class AutoClicker {
     public void clickMouse(Minecraft instance) {
         instance.thePlayer.swingItem();
 
-        switch (instance.objectMouseOver.typeOfHit) {
-            case ENTITY: {
-                instance.playerController.attackEntity(instance.thePlayer, instance.objectMouseOver.entityHit);
-                break;
-            }
+        // Use the ReachExtender instead of Minecraft's.
+        double reachDistance = Main.reachExtender.getReachDistance(instance);
+        double partialTicks = Main.reachExtender.getPartialTicks(instance);
+        Entity entity = Main.reachExtender.getEntityFromRaycast(instance, reachDistance, partialTicks);
 
-            case BLOCK: {
-                BlockPos blockpos = instance.objectMouseOver.getBlockPos();
-                Material blockmat = instance.theWorld.getBlockState(blockpos).getBlock().getMaterial();
+        if(entity != null) {
+            instance.playerController.attackEntity(instance.thePlayer, entity);
+        }
 
-                if (blockmat != Material.air) {
-                    instance.playerController.clickBlock(blockpos, instance.objectMouseOver.sideHit);
-                    break;
+        else if(instance.objectMouseOver != null) {
+            if(instance.objectMouseOver.typeOfHit == MovingObjectType.BLOCK) {
+                BlockPos blockPos = instance.objectMouseOver.getBlockPos();
+                Material blockMat = instance.theWorld.getBlockState(blockPos).getBlock().getMaterial();
+
+                if(blockMat != Material.air) {
+                    instance.playerController.clickBlock(blockPos, instance.objectMouseOver.sideHit);
                 }
-            }
-
-            case MISS: {
-                break;
             }
         }
     }

@@ -9,10 +9,12 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 public class Main {
     // Mod-wide objects (basically, we don't need more RNGs).
     public static final MersenneTwister rand = new MersenneTwister();
+    public static final ReachExtender reachExtender = new ReachExtender();
     public static final AutoClicker autoClicker = new AutoClicker();
 
     @EventHandler
     public void init(FMLInitializationEvent event) {
+        MinecraftForge.EVENT_BUS.register(reachExtender);
         MinecraftForge.EVENT_BUS.register(autoClicker);
     }
 }
