@@ -1,15 +1,24 @@
 package dev.larrabyte.huff;
 
 import net.minecraft.init.Items;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemPotion;
 import net.minecraft.item.ItemSword;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
+
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.List;
+
 import net.minecraft.block.material.Material;
 import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent.PlayerTickEvent;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
 public class AutoClicker {
     // AutoClicker constants (ask boggle).
@@ -21,6 +30,41 @@ public class AutoClicker {
     private final WaitTimer timer = new WaitTimer();
     private long rangeCap = (MAX_CPS + MIN_CPS + WINDOW_SIZE) * (GRANULARITY / 2);
     private long rangeFloor = (MAX_CPS + MIN_CPS - WINDOW_SIZE) * (GRANULARITY / 2);
+
+    public boolean shouldLeftClick(Minecraft instance) {
+        boolean pressed = instance.gameSettings.keyBindAttack.isKeyDown();
+        boolean nonNull = instance.thePlayer.getCurrentEquippedItem() != null;
+
+        if(nonNull) {
+            boolean isSword = instance.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemSword;
+            boolean isStick = instance.thePlayer.inventory.getCurrentItem().getItem() == Items.stick;
+            return pressed && nonNull && (isSword || isStick);
+        }
+
+        return false;
+    }
+
+    public boolean shouldRightClick(Minecraft instance) {
+        boolean nonNull = instance.thePlayer.getCurrentEquippedItem() != null;
+
+        if(nonNull) {
+            Item itemInHand = instance.thePlayer.inventory.getCurrentItem().getItem();
+            List<Item> throwables = Arrays.asList(Items.experience_bottle, Items.snowball, Items.egg);
+
+            boolean isThrowable = throwables.contains(itemInHand);
+            boolean isBlock = itemInHand instanceof ItemBlock;
+            boolean isSplashPotion = false;
+
+            if(itemInHand instanceof ItemPotion) {
+                int potionMetadata = instance.thePlayer.inventory.getCurrentItem().getMetadata();
+                isSplashPotion = ItemPotion.isSplash(potionMetadata);
+            }
+
+            return isBlock || isThrowable || isSplashPotion;
+        }
+
+        return false;
+    }
 
     public long computeDelay() {
         long cps = Main.rand.nextLong(rangeFloor, rangeCap + 1) / GRANULARITY;
@@ -48,19 +92,6 @@ public class AutoClicker {
         }
 
         return delay;
-    }
-
-    public boolean shouldClick(Minecraft instance) {
-        boolean pressed = instance.gameSettings.keyBindAttack.isKeyDown();
-        boolean nonNull = instance.thePlayer.getCurrentEquippedItem() != null;
-
-        if(nonNull) {
-            boolean isSword = instance.thePlayer.inventory.getCurrentItem().getItem() instanceof ItemSword;
-            boolean isStick = instance.thePlayer.inventory.getCurrentItem().getItem() == Items.stick;
-            return pressed && nonNull && (isSword || isStick);
-        }
-
-        return false;
     }
 
     public void clickMouse(Minecraft instance) {
@@ -92,27 +123,30 @@ public class AutoClicker {
         Minecraft instance = Minecraft.getMinecraft();
 
         // If clicking and scrolling, cancel this event.
-        if(shouldClick(instance) && event.dwheel != 0) {
+        if(shouldLeftClick(instance) && event.dwheel != 0) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
-    public void onTickEvent(PlayerTickEvent event) {
+    public void onTickEvent(PlayerTickEvent event) throws IllegalArgumentException, IllegalAccessException {
         Minecraft instance = Minecraft.getMinecraft();
 
-        if(shouldClick(instance)) {
-            long delay = computeDelay();
-
-            // If enough nanoseconds have passed, click and reset.
-            if(timer.hasTimeElapsed(delay)) {
-                clickMouse(instance);
-                timer.reset();
-            }
+        if(!shouldLeftClick(instance)) {
+            // Just reset the timer and move on.
+            timer.reset();
         }
 
-        else {
+        else if(timer.hasTimeElapsed(computeDelay())) {
+            clickMouse(instance);
             timer.reset();
+        }
+
+        if(shouldRightClick(instance)) {
+            Class<? extends Minecraft> instanceClass = instance.getClass();
+            Field rightClickField = ReflectionHelper.findField(instanceClass, "rightClickDelayTimer", "field_71467_ac");
+            rightClickField.setAccessible(true);
+            rightClickField.setInt(instance, 0);
         }
     }
 }

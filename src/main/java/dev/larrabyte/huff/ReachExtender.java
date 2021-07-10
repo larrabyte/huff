@@ -15,6 +15,7 @@ import net.minecraft.util.Timer;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
 public class ReachExtender {
     private Timer minecraftTimer = null;
@@ -90,16 +91,9 @@ public class ReachExtender {
         // Create a reference to Minecraft's timer when we connect to a server.
         Minecraft instance = Minecraft.getMinecraft();
         Class<? extends Minecraft> instanceClass = instance.getClass();
-        Field[] possibleFields = instanceClass.getDeclaredFields();
 
-        for(Field field : possibleFields) {
-            String name = field.getName();
-
-            // Use the deobfuscated name for regular clients.
-            if(name == "field_71428_T" || name == "timer") {
-                field.setAccessible(true);
-                minecraftTimer = (Timer) field.get(instance);
-            }
-        }
+        Field timerField = ReflectionHelper.findField(instanceClass, "timer", "field_71428_T");
+        timerField.setAccessible(true);
+        minecraftTimer = (Timer) timerField.get(instance);
     }
 }
