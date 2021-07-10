@@ -9,11 +9,16 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.EntitySelectors;
+import net.minecraft.util.MovementInput;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Timer;
 import net.minecraft.util.Vec3;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent;
 
 public class ReachExtender {
+    private Timer minecraftTimer = null;
+
     // It just works(TM).
     public Entity getEntityFromRaycast(Minecraft instance, double range, double partialTicks) {
         Entity renderViewEntity = instance.getRenderViewEntity();
@@ -63,7 +68,8 @@ public class ReachExtender {
     }
 
     public double getReachDistance(Minecraft instance) {
-        boolean moving = instance.thePlayer.movementInput.moveForward == 0 && instance.thePlayer.movementInput.moveStrafe == 0;
+        MovementInput playerMovement = instance.thePlayer.movementInput;
+        boolean moving = playerMovement.moveForward == 0 && playerMovement.moveStrafe == 0;
         boolean sprinting = instance.thePlayer.isSprinting();
 
         if(!moving) {
@@ -76,22 +82,20 @@ public class ReachExtender {
     }
 
     public double getPartialTicks(Minecraft instance) {
-        // We need reflection to access Minecraft's timer.
-        Class<? extends Minecraft> instanceClass = instance.getClass();
-        double partialTicks = 0.0;
+        return minecraftTimer.elapsedPartialTicks;
+    }
 
-        try {
+    @SubscribeEvent
+    public void onConnectedToServerEvent(ClientConnectedToServerEvent event) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+        // Create a reference to Minecraft's timer when we connect to a server.
+        Minecraft instance = Minecraft.getMinecraft();
+        Class<? extends Minecraft> instanceClass = instance.getClass();
+
+        if(event.isLocal) {
+            // This shouldn't ever fail, but Java requires the function to throw just in-case.
             Field timerField = instanceClass.getDeclaredField("timer");
             timerField.setAccessible(true);
-            Timer timer = (Timer) timerField.get(instance);
-            partialTicks = (double) timer.elapsedPartialTicks;
+            minecraftTimer = (Timer) timerField.get(instance);
         }
-
-        catch(Throwable e) {
-            // We shouldn't ever end up here.
-            System.out.println(e);
-        }
-
-        return partialTicks;
     }
 }
