@@ -86,16 +86,20 @@ public class ReachExtender {
     }
 
     @SubscribeEvent
-    public void onConnectedToServerEvent(ClientConnectedToServerEvent event) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+    public void onConnectedToServerEvent(ClientConnectedToServerEvent event) throws IllegalArgumentException, IllegalAccessException {
         // Create a reference to Minecraft's timer when we connect to a server.
         Minecraft instance = Minecraft.getMinecraft();
         Class<? extends Minecraft> instanceClass = instance.getClass();
+        Field[] possibleFields = instanceClass.getDeclaredFields();
 
-        if(event.isLocal) {
-            // This shouldn't ever fail, but Java requires the function to throw just in-case.
-            Field timerField = instanceClass.getDeclaredField("timer");
-            timerField.setAccessible(true);
-            minecraftTimer = (Timer) timerField.get(instance);
+        for(Field field : possibleFields) {
+            String name = field.getName();
+
+            // Use the deobfuscated name for regular clients.
+            if(name == "field_71428_T" || name == "timer") {
+                field.setAccessible(true);
+                minecraftTimer = (Timer) field.get(instance);
+            }
         }
     }
 }
