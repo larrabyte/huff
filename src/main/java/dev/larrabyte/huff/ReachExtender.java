@@ -68,20 +68,6 @@ public class ReachExtender {
         return pointedEntity;
     }
 
-    public double getReachDistance(Minecraft instance) {
-        MovementInput playerMovement = instance.thePlayer.movementInput;
-        boolean moving = playerMovement.moveForward == 0 && playerMovement.moveStrafe == 0;
-        boolean sprinting = instance.thePlayer.isSprinting();
-
-        if(!moving) {
-            return Main.rand.nextDouble(3.1, 3.4);
-        } else if(sprinting) {
-            return Main.rand.nextDouble(3.2, 3.6);
-        } else {
-            return Main.rand.nextDouble(3.15, 3.4);
-        }
-    }
-
     public double getPartialTicks(Minecraft instance) {
         return minecraftTimer.elapsedPartialTicks;
     }

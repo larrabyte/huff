@@ -22,9 +22,9 @@ import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
 public class AutoClicker {
     // AutoClicker constants (ask boggle).
-    private final long MAX_CPS = 14;
-    private final long MIN_CPS = 8;
-    private final long WINDOW_SIZE = 2;
+    private final long MAX_CPS = 17;
+    private final long MIN_CPS = 11;
+    private final long WINDOW_SIZE = 3;
     private final long GRANULARITY = 1000;
 
     private final WaitTimer timer = new WaitTimer();
@@ -98,7 +98,7 @@ public class AutoClicker {
         instance.thePlayer.swingItem();
 
         // Use the ReachExtender instead of Minecraft's.
-        double reachDistance = Main.reachExtender.getReachDistance(instance);
+        double reachDistance = 4.2;
         double partialTicks = Main.reachExtender.getPartialTicks(instance);
         Entity entity = Main.reachExtender.getEntityFromRaycast(instance, reachDistance, partialTicks);
 
