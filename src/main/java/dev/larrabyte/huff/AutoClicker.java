@@ -35,6 +35,7 @@ public class AutoClicker {
 
     // Right-click related fields.
     private Field rightClickDelayTimerField = null;
+    private boolean rightClickerEnabled = false;
 
     public boolean shouldLeftClick(Minecraft instance) {
         boolean pressed = instance.gameSettings.keyBindAttack.isKeyDown();
@@ -66,7 +67,7 @@ public class AutoClicker {
                 isSplashPotion = ItemPotion.isSplash(potionMetadata);
             }
 
-            return pressed && (isBlock || isThrowable || isSplashPotion);
+            return rightClickerEnabled && pressed && (isBlock || isThrowable || isSplashPotion);
         }
 
         return false;
@@ -127,6 +128,11 @@ public class AutoClicker {
     @SubscribeEvent
     public void onMouseEvent(MouseEvent event) {
         Minecraft instance = Minecraft.getMinecraft();
+
+        // If middle mouse is pressed, flip the right click boolean.
+        if(event.button == 2 && event.buttonstate == true) {
+            rightClickerEnabled = !rightClickerEnabled;
+        }
 
         // If clicking and scrolling, cancel this event.
         if(shouldLeftClick(instance) && event.dwheel != 0) {

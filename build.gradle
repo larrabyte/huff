@@ -14,7 +14,7 @@ buildscript {
 
 apply plugin: 'net.minecraftforge.gradle.forge'
 
-version = "0.0.6-alpha"
+version = "0.0.7-alpha"
 group= "dev.larrabyte.huff"
 archivesBaseName = "huff"
 sourceCompatibility = JavaVersion.VERSION_1_8
